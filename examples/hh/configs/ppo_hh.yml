@@ -2,20 +2,22 @@ train:
   seq_length: 1024
   epochs: 10000
   total_steps: 6000
-  batch_size: 2
+  batch_size: 4
 
-  checkpoint_interval: 1000
-  eval_interval: 1000
+  checkpoint_interval: 10000
+  eval_interval: 500
 
   pipeline: "PromptPipeline"
   orchestrator: "PPOOrchestrator"
   trainer: "AcceleratePPOTrainer"
 
 model:
-  model_path: "EleutherAI/gpt-j-6B"
+  # model_path: "EleutherAI/gpt-j-6B"
+  model_path: "reciprocate/ppo_hh_gpt-j"
   num_layers_unfrozen: 2
 
 tokenizer:
+  # tokenizer_path: "EleutherAI/gpt-neox-20b"
   tokenizer_path: "gpt2"
   truncation_side: "left"
 
@@ -30,7 +32,7 @@ optimizer:
 scheduler:
   name: "cosine_annealing"
   kwargs:
-    T_max: 10000 # train.total_steps
+    T_max: 10000
     eta_min: 8.0e-6
 
 method:

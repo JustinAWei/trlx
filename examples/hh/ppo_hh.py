@@ -12,7 +12,8 @@ from tritonclient.utils import np_to_triton_dtype
 import trlx
 from trlx.data.configs import TRLConfig
 
-config_path = os.path.join(os.path.dirname(__file__), "configs/ppo_hh.yml")
+name = "ppo_hh_125M"
+config_path = os.path.join(os.path.dirname(__file__), f"configs/{name}.yml")
 default_config = yaml.safe_load(open(config_path))
 triton_host = os.environ.get("TRITON_HOST", "localhost:8001")
 triton_model = os.environ.get("TRITON_MODEL", "gptj-rm-static")
@@ -33,10 +34,10 @@ def main(hparams={}):
     client = client_util.InferenceServerClient(url=triton_host, verbose=False)
 
     def reward_fn(samples, prompts, outputs):
-        samples = [s[len(hhh_prompt) :] for s in samples]
+        samples = [s + reward_tokenizer.eos_token for s in samples]
         input = reward_tokenizer(samples, padding=True, max_length=1024)
 
-        mbs = 8
+        mbs = 24
         out = []
         for i in range(math.ceil(len(samples) / mbs)):
             batch_ixs = slice(i * mbs, (i + 1) * mbs)
@@ -59,21 +60,22 @@ def main(hparams={}):
 
         return out
 
-    dataset = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base")
-    hhh_prompt = ""  # .join(dataset['test'][[-4, -24, -28]]['chosen'])
+    def preprocess(sample):
+        sample["prompt"] += "Assistant:"
+        return sample
 
-    dialogues = sum([[x["chosen"], x["rejected"]] for x in dataset["train"]], [])
-    dialogues = [re.split(r"(\n\nHuman: |\n\nAssistant: )", x)[1:] for x in dialogues]
-    prompts = [hhh_prompt + "".join(x[:-1]) for x in dialogues]
-    eval_prompts = [hhh_prompt + "".join(x[:-1]) for x in dialogues][:128]
+    dataset = load_dataset("Dahoas/rm-static").map(preprocess)
+    prompts = dataset["train"]["prompt"]
+    eval_prompts = dataset["test"]["prompt"][:128]
 
-    trlx.train(
+    trainer = trlx.train(
         reward_fn=reward_fn,
         prompts=prompts,
         eval_prompts=eval_prompts,
         config=config,
         stop_sequences=["Human:", "human:", "Assistant:", "assistant:"],
     )
+    trainer.save_pretrained(f"{name}-2101")
 
 
 if __name__ == "__main__":

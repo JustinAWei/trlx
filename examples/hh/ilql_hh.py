@@ -23,6 +23,19 @@ def prepare_tensor(name: str, input):
     t.set_data_from_numpy(input)
     return t
 
+def split_dialog(dialog):
+    dialog = re.split(r"(\n\nHuman: |\n\nAssistant: )", dialog)[1:]
+    return ["".join(dialog[:-1]), dialog[-1]]
+
+
+def preprocess(sample):
+    sample["prompt_output"] = [
+        split_dialog(sample["chosen"]),
+        split_dialog(sample["rejected"]),
+    ]
+    sample["reward"] = [1, -1]
+    return sample
+
 
 def main(hparams={}):
     config = TRLConfig.update(default_config, hparams)
@@ -33,10 +46,10 @@ def main(hparams={}):
     client = client_util.InferenceServerClient(url=triton_host, verbose=False)
 
     def reward_fn(samples):
-        samples = [s[len(hhh_prompt) :] for s in samples]
+        samples = [s + reward_tokenizer.eos_token for s in samples]
         input = reward_tokenizer(samples, padding=True, max_length=1024)
 
-        mbs = 8
+        mbs = 24
         out = []
         for i in range(math.ceil(len(samples) / mbs)):
             batch_ixs = slice(i * mbs, (i + 1) * mbs)
@@ -59,26 +72,49 @@ def main(hparams={}):
 
         return out
 
-    dataset = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base")
-    hhh_prompt = ""  # .join(dataset["test"][[-4, -24, -28]]["chosen"])
+    # dataset = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base").map(preprocess)
+    # prompts_outputs = sum(dataset["train"]["prompt_output"], [])
+    # rewards = sum(dataset["train"]["reward"], [])
+    # test_dataset = load_dataset(
+    #     "Anthropic/hh-rlhf", data_dir="helpful-base", split="test"
+    # ).map(preprocess)
+    # eval_prompts = [sample[0][0] for sample in test_dataset["prompt_output"]][:256]
 
-    dialogues = sum([[x["chosen"], x["rejected"]] for x in dataset["train"]], [])
-    dialogues = [re.split(r"(\n\nHuman: |\n\nAssistant: )", x)[1:] for x in dialogues]
-    prompts_responses = [[hhh_prompt + "".join(x[:-1]), x[-1]] for x in dialogues]
-    rewards = [1, 0] * (len(dialogues) // 2)
+    def preprocess_static(sample):
+        sample["prompt_output"] = [
+            [
+                sample["prompt"] + "Assistant: ",
+                sample["chosen"][len("Assistant: "):]
+            ],
+            [
+                sample["prompt"] + "Assistant: ",
+                sample["rejected"][len("Assistant: "):]
+            ],
+        ]
+        sample["reward"] = [1, -1]
 
-    dialogues = sum([[x["chosen"], x["rejected"]] for x in dataset["test"]], [])
-    dialogues = [re.split(r"(\n\nHuman: |\n\nAssistant: )", x)[1:] for x in dialogues]
-    eval_prompts = [hhh_prompt + "".join(x[:-1]) for x in dialogues][:128]
+        return sample
+
+    dataset = load_dataset("Dahoas/rm-static").map(preprocess_static)
+    prompts_outputs = sum(dataset["train"]["prompt_output"], [])
+    rewards = sum(dataset["train"]["reward"], [])
+    eval_prompts = [sample[0][0] for sample in dataset["test"]["prompt_output"]][:128]
+
+    def preprocess_labeled(sample):
+        sample["prompt_output"] = split_dialog(sample["response"])
+        return sample
+
+    dataset = load_dataset("Dahoas/reward-labeled-static").map(preprocess_labeled)
+    prompts_outputs = dataset["train"]['prompt_output']
+    rewards = dataset["train"]['reward']
 
     trlx.train(
-        dataset=(prompts_responses, rewards),
+        dataset=(prompts_outputs, rewards),
         config=config,
         eval_prompts=eval_prompts,
         metric_fn=lambda xs: {"rewards": reward_fn(xs)},
         stop_sequences=["Human:", "human:", "Assistant:", "assistant:"],
     )
-
 
 if __name__ == "__main__":
     import json
