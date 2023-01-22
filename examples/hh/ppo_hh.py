@@ -12,7 +12,7 @@ from tritonclient.utils import np_to_triton_dtype
 import trlx
 from trlx.data.configs import TRLConfig
 
-name = "ppo_hh_125M"
+name = "ppo_hh"
 config_path = os.path.join(os.path.dirname(__file__), f"configs/{name}.yml")
 default_config = yaml.safe_load(open(config_path))
 triton_host = os.environ.get("TRITON_HOST", "localhost:8001")
