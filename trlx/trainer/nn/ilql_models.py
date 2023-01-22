@@ -25,12 +25,17 @@ from trlx.utils.modeling import (
     make_head,
 )
 
-
 def topk_mask(xs: torch.FloatTensor, k: int):
     if k > xs.shape[-1]:
         return xs
     mintop = torch.topk(xs, k)[0][:, -1].unsqueeze(-1)
     return torch.where(xs < mintop, -np.inf * torch.ones_like(xs, dtype=xs.dtype), xs)
+
+def make_head(n_embd: int, out: int) -> nn.Sequential:
+    """Returns a generic sequential MLP head."""
+    return nn.Sequential(
+        nn.Linear(n_embd, n_embd * 2, dtype=torch.float16), nn.ReLU(), nn.Linear(n_embd * 2, out, dtype=torch.float16)
+    )
 
 
 @dataclass
@@ -338,9 +343,6 @@ class CausalLMWithValueHeads(nn.Module):
                 (attention_mask, (input_ids != eos_token_id).long())
             )
             position_ids = (position_ids[:, -1] + 1).view(-1, 1)
-
-            if torch.all(finished):
-                break
 
         return samples
 

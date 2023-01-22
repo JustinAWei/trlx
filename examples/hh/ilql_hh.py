@@ -98,7 +98,7 @@ def main(hparams={}):
     dataset = load_dataset("Dahoas/rm-static").map(preprocess_static)
     prompts_outputs = sum(dataset["train"]["prompt_output"], [])
     rewards = sum(dataset["train"]["reward"], [])
-    eval_prompts = [sample[0][0] for sample in dataset["test"]["prompt_output"]][:128]
+    eval_prompts = [sample[0][0] for sample in dataset["test"]["prompt_output"]][:32]
 
     def preprocess_labeled(sample):
         sample["prompt_output"] = split_dialog(sample["response"])
