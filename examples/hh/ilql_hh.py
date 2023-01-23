@@ -12,8 +12,7 @@ from tritonclient.utils import np_to_triton_dtype
 import trlx
 from trlx.data.configs import TRLConfig
 
-config_path = os.path.join(os.path.dirname(__file__), "configs/ilql_hh.yml")
-default_config = yaml.safe_load(open(config_path))
+
 triton_host = os.environ.get("TRITON_HOST", "localhost:8001")
 triton_model = os.environ.get("TRITON_MODEL", "gptj-rm-static")
 
@@ -38,6 +37,8 @@ def preprocess(sample):
 
 
 def main(hparams={}):
+    config_path = os.path.join(os.path.dirname(__file__), os.environ.get("CONFIG_PATH"))
+    default_config = yaml.safe_load(open(config_path))
     config = TRLConfig.update(default_config, hparams)
 
     reward_tokenizer = AutoTokenizer.from_pretrained("gpt2")
@@ -73,40 +74,41 @@ def main(hparams={}):
         return out
 
     # dataset = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base").map(preprocess)
-    # prompts_outputs = sum(dataset["train"]["prompt_output"], [])
-    # rewards = sum(dataset["train"]["reward"], [])
-    # test_dataset = load_dataset(
-    #     "Anthropic/hh-rlhf", data_dir="helpful-base", split="test"
-    # ).map(preprocess)
-    # eval_prompts = [sample[0][0] for sample in test_dataset["prompt_output"]][:256]
-
-    def preprocess_static(sample):
-        sample["prompt_output"] = [
-            [
-                sample["prompt"] + "Assistant: ",
-                sample["chosen"][len("Assistant: "):]
-            ],
-            [
-                sample["prompt"] + "Assistant: ",
-                sample["rejected"][len("Assistant: "):]
-            ],
-        ]
-        sample["reward"] = [1, -1]
-
-        return sample
-
-    dataset = load_dataset("Dahoas/rm-static").map(preprocess_static)
+    dataset = load_dataset("Anthropic/hh-rlhf").map(preprocess)
     prompts_outputs = sum(dataset["train"]["prompt_output"], [])
     rewards = sum(dataset["train"]["reward"], [])
-    eval_prompts = [sample[0][0] for sample in dataset["test"]["prompt_output"]][:32]
+    test_dataset = load_dataset(
+        "Anthropic/hh-rlhf", data_dir="helpful-base", split="test"
+    ).map(preprocess)
+    eval_prompts = [sample[0][0] for sample in test_dataset["prompt_output"]][:256]
 
-    def preprocess_labeled(sample):
-        sample["prompt_output"] = split_dialog(sample["response"])
-        return sample
+    # def preprocess_static(sample):
+    #     sample["prompt_output"] = [
+    #         [
+    #             sample["prompt"] + "Assistant: ",
+    #             sample["chosen"][len("Assistant: "):]
+    #         ],
+    #         [
+    #             sample["prompt"] + "Assistant: ",
+    #             sample["rejected"][len("Assistant: "):]
+    #         ],
+    #     ]
+    #     sample["reward"] = [1, -1]
 
-    dataset = load_dataset("Dahoas/reward-labeled-static").map(preprocess_labeled)
-    prompts_outputs = dataset["train"]['prompt_output']
-    rewards = dataset["train"]['reward']
+    #     return sample
+
+    # dataset = load_dataset("Dahoas/rm-static").map(preprocess_static)
+    # prompts_outputs = sum(dataset["train"]["prompt_output"], [])
+    # rewards = sum(dataset["train"]["reward"], [])
+    # eval_prompts = [sample[0][0] for sample in dataset["test"]["prompt_output"]][:32]
+
+    # def preprocess_labeled(sample):
+    #     sample["prompt_output"] = split_dialog(sample["response"])
+    #     return sample
+
+    # dataset = load_dataset("Dahoas/reward-labeled-static").map(preprocess_labeled)
+    # prompts_outputs = dataset["train"]['prompt_output']
+    # rewards = dataset["train"]['reward']
 
     trlx.train(
         dataset=(prompts_outputs, rewards),

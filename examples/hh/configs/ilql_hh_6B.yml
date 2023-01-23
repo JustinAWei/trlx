@@ -1,7 +1,7 @@
 train:
-  seq_length: 1024
+  seq_length: 2048
   epochs: 100
-  total_steps: 10000
+  total_steps: 3000
   batch_size: 4
 
   checkpoint_interval: 100000
@@ -10,14 +10,14 @@ train:
   pipeline: "PromptPipeline"
   orchestrator: "OfflineOrchestrator"
   trainer: "AccelerateILQLTrainer"
+  checkpoint_dir: "checkpoints/ilql_hh_6b_2301_unlabeled"
 
 model:
-  model_path: "EleutherAI/gpt-j-6B"
+  model_path: "EleutherAI/pythia-6.9b-deduped"
   num_layers_unfrozen: -1
 
 tokenizer:
-  tokenizer_path: "gpt2"
-  # tokenizer_path: "EleutherAI/gpt-neox-20b"
+  tokenizer_path: "EleutherAI/gpt-neox-20b"
   truncation_side: "left"
 
 optimizer:
