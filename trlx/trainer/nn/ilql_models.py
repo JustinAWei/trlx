@@ -31,12 +31,6 @@ def topk_mask(xs: torch.FloatTensor, k: int):
     mintop = torch.topk(xs, k)[0][:, -1].unsqueeze(-1)
     return torch.where(xs < mintop, -np.inf * torch.ones_like(xs, dtype=xs.dtype), xs)
 
-def make_head(n_embd: int, out: int) -> nn.Sequential:
-    """Returns a generic sequential MLP head."""
-    return nn.Sequential(
-        nn.Linear(n_embd, n_embd * 2, dtype=torch.float16), nn.ReLU(), nn.Linear(n_embd * 2, out, dtype=torch.float16)
-    )
-
 
 @dataclass
 @register_method
