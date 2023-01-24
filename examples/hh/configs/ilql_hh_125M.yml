@@ -2,7 +2,7 @@ train:
   seq_length: 1024
   epochs: 100
   total_steps: 20000
-  batch_size: 32
+  batch_size: 16
 
   checkpoint_interval: 100000
   eval_interval: 1000
@@ -10,7 +10,7 @@ train:
   pipeline: "PromptPipeline"
   orchestrator: "OfflineOrchestrator"
   trainer: "AccelerateILQLTrainer"
-  checkpoint_dir: "checkpoints/ilql_hh_125M_2301_unlabeled"
+  checkpoint_dir: "checkpoints/ilql_hh_125M_2401_unlabeled"
 
 model:
   model_path: "EleutherAI/pythia-125m-deduped"

@@ -10,7 +10,7 @@ train:
   pipeline: "PromptPipeline"
   orchestrator: "OfflineOrchestrator"
   trainer: "AccelerateILQLTrainer"
-  checkpoint_dir: "checkpoints/ilql_hh_20b_2301_unlabeled"
+  checkpoint_dir: "checkpoints/ilql_hh_20b_2401_unlabeled"
 
 model:
   model_path: "EleutherAI/gpt-neox-20b"
