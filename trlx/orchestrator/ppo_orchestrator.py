@@ -234,8 +234,8 @@ class PPOOrchestrator(Orchestrator):
                 rs = rewards[ix]
                 if len(rs) == 0:
                     rs = torch.tensor([0.0])
-                    all_values[ix] = all_values[ix, -1:]
-                    all_logprobs[ix] = all_logprobs[ix, -1:]
+                    all_values[ix] = all_values[ix][-1:]
+                    all_logprobs[ix] = all_logprobs[ix][-1:]
                 rs[-1] += scores[ix].cpu()
                 all_rewards[ix] = rs
 
