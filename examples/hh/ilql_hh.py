@@ -74,33 +74,33 @@ def main(hparams={}):
         return out
 
     # dataset = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base").map(preprocess)
-    dataset = load_dataset("Anthropic/hh-rlhf").map(preprocess)
-    prompts_outputs = sum(dataset["train"]["prompt_output"], [])
-    rewards = sum(dataset["train"]["reward"], [])
-    test_dataset = load_dataset(
-        "Anthropic/hh-rlhf", data_dir="helpful-base", split="test"
-    ).map(preprocess)
-    eval_prompts = [sample[0][0] for sample in test_dataset["prompt_output"]][:256]
-
-    # def preprocess_static(sample):
-    #     sample["prompt_output"] = [
-    #         [
-    #             sample["prompt"] + "Assistant: ",
-    #             sample["chosen"][len("Assistant: "):]
-    #         ],
-    #         [
-    #             sample["prompt"] + "Assistant: ",
-    #             sample["rejected"][len("Assistant: "):]
-    #         ],
-    #     ]
-    #     sample["reward"] = [1, -1]
-
-    #     return sample
-
-    # dataset = load_dataset("Dahoas/rm-static").map(preprocess_static)
+    # dataset = load_dataset("Anthropic/hh-rlhf").map(preprocess)
     # prompts_outputs = sum(dataset["train"]["prompt_output"], [])
     # rewards = sum(dataset["train"]["reward"], [])
-    # eval_prompts = [sample[0][0] for sample in dataset["test"]["prompt_output"]][:32]
+    # test_dataset = load_dataset(
+    #     "Anthropic/hh-rlhf", data_dir="helpful-base", split="test"
+    # ).map(preprocess)
+    # eval_prompts = [sample[0][0] for sample in test_dataset["prompt_output"]][:256]
+
+    def preprocess_static(sample):
+        sample["prompt_output"] = [
+            [
+                sample["prompt"] + "Assistant: ",
+                sample["chosen"][len("Assistant: "):]
+            ],
+            [
+                sample["prompt"] + "Assistant: ",
+                sample["rejected"][len("Assistant: "):]
+            ],
+        ]
+        sample["reward"] = [1, -1]
+
+        return sample
+
+    dataset = load_dataset("Dahoas/rm-static").map(preprocess_static)
+    prompts_outputs = sum(dataset["train"]["prompt_output"], [])
+    rewards = sum(dataset["train"]["reward"], [])
+    eval_prompts = [sample[0][0] for sample in dataset["test"]["prompt_output"]][:32]
 
     # def preprocess_labeled(sample):
     #     sample["prompt_output"] = split_dialog(sample["response"])
