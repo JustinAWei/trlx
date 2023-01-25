@@ -75,7 +75,7 @@ def main(hparams={}):
         config=config,
         stop_sequences=["Human:", "human:", "Assistant:", "assistant:"],
     )
-    trainer.save_pretrained(f"checkpoints/ppo_hh_20b-2501")
+    trainer.save_pretrained(f"checkpoints/ppo_hh_20b-2501-low_num_rollouts")
 
 
 if __name__ == "__main__":
