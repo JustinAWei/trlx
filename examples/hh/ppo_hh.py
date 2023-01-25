@@ -66,7 +66,7 @@ def main(hparams={}):
 
     dataset = load_dataset("Dahoas/rm-static").map(preprocess)
     prompts = dataset["train"]["prompt"]
-    eval_prompts = dataset["test"]["prompt"][:128]
+    eval_prompts = dataset["test"]["prompt"][:8]
 
     trainer = trlx.train(
         reward_fn=reward_fn,
@@ -75,7 +75,7 @@ def main(hparams={}):
         config=config,
         stop_sequences=["Human:", "human:", "Assistant:", "assistant:"],
     )
-    trainer.save_pretrained(f"{name}-2101")
+    trainer.save_pretrained(f"checkpoints/ppo_hh_20b-2501")
 
 
 if __name__ == "__main__":

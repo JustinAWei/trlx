@@ -1,15 +1,16 @@
 train:
-  seq_length: 2048
+  seq_length: 512
   epochs: 10000
-  total_steps: 6000
+  total_steps: 5000
   batch_size: 1
 
   checkpoint_interval: 10000
-  eval_interval: 500
+  eval_interval: 1000
 
   pipeline: "PromptPipeline"
   orchestrator: "PPOOrchestrator"
   trainer: "AcceleratePPOTrainer"
+  seed: 2000
 
 model:
   model_path: "Dahoas/gptneox-sft-static"
@@ -22,7 +23,7 @@ tokenizer:
 optimizer:
   name: "adamw"
   kwargs:
-    lr: 8.0e-6 # was 4e-6
+    lr: 6.0e-6
     betas: [0.9, 0.95]
     eps: 1.0e-8
     weight_decay: 1.0e-6
@@ -30,13 +31,13 @@ optimizer:
 scheduler:
   name: "cosine_annealing"
   kwargs:
-    T_max: 1000000 # train.total_steps
-    eta_min: 8.0e-6
+    T_max: 1000000
+    eta_min: 6.0e-6
 
 method:
   name: "ppoconfig"
-  num_rollouts: 32
-  chunk_size: 1
+  num_rollouts: 64
+  chunk_size: 4
   ppo_epochs: 4
   init_kl_coef: 0.05
   target: 6
