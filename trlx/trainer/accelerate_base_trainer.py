@@ -400,6 +400,7 @@ class AccelerateRLTrainer(BaseRLTrainer):
 
             Console().print(rich_table)
 
+        self.accelerator.wait_for_everyone()
         self.nth_evaluation += 1
         return stats
 
