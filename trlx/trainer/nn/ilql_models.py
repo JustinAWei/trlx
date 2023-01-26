@@ -282,6 +282,7 @@ class CausalLMWithValueHeads(nn.Module):
         past_key_values=None,
         beta=1,
         max_new_tokens=32,
+        min_new_tokens=16,
         max_length=1024,
         temperature=1,
         top_k=20,
@@ -307,7 +308,7 @@ class CausalLMWithValueHeads(nn.Module):
         finished = torch.zeros(
             input_ids.shape[0], 1, dtype=torch.long, device=input_ids.device
         )
-        for _ in range(max_new_tokens):
+        for ix in range(max_new_tokens):
             out = self.forward(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
@@ -331,6 +332,10 @@ class CausalLMWithValueHeads(nn.Module):
             adv = qs - vs
             pi_beta = F.log_softmax(logits, -1)
             pi_top_k = topk_mask(pi_beta + beta * adv, top_k)
+
+            if ix < min_new_tokens:
+                pi_top_k[:, eos_token_id] = -100
+
             pi = F.softmax(pi_top_k / temperature, -1)
 
             input_ids = torch.multinomial(pi, num_samples=1)
